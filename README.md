@@ -1,7 +1,7 @@
 # nycflights-EDA
 Exploratory Data Analysis on the domestic flights of New York using R.
 
-Prerequisites for running the code using R studio:
+Prerequisites for running the R code/ R markdown file using R studio:
 
 Installation of packages:
 
