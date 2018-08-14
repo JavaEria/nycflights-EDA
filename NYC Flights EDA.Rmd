@@ -1,0 +1,206 @@
+---
+title: "NYC Flights Data"
+output:
+  html_document:
+    df_print: paged
+---
+
+Load Packages
+```{r}
+library(dplyr)
+library(ggplot2)
+library(statsr)
+```
+
+Load Data
+```{r}
+data(nycflights)
+View(nycflights)
+```
+
+Part 1: Data
+
+The Bureau of Transportation Statistics (BTS) is a statistical agency that is a part of the Research and Innovative Technology Administration (RITA). This data set is a collection from BTS. Therefore we cannot apply any causal inference between any of the variables in it, even if there are any correlations. The observations represent domestic flights from three major airports of New York.
+
+The names of the variables are shown below.
+
+```{r}
+names(nycflights)
+```
+
+We can check the dimensions of the data frame and the data types of the variables using the str
+function.
+
+```{r}
+str(nycflights)
+```
+
+We can also use head() if we have to understand a large set of data 
+```{r}
+head(nycflights)
+```
+
+
+
+Part 2: Research Questions
+
+Research Question 1: Is there any correlation between the departure delays and the time of the year when flights get delayed. For this we will find the patterns in the month and calculate the average values of the departure delays for each month. We will first plot the histogram and boxplot of the departure delay to see the distribution. 
+
+Research Question 2: Can the airport origin have an association with the departure rate of the departing flights. For this we will calculate an on-time departure rate where we will assume if the delay is less than 5 min then it is on-time.
+
+Research Question 3: Is there any correlation between the arrival delays and the speed of the airplanes for the flights. For this we will try to find patterns in the arrival delays and the speed of the airplanes.
+
+Part 3: Exploratory Data Analysis
+
+Research Question 1: 
+
+We will plot the distribution of the departure delays using histogram first, then we will plot the side by side boxplot which will be grouped by month.
+
+ggplot is a canvas where we can add anything we want it, takes aestehtics where we tell the x-axis and y-axis for plotting
+
+Histogram:
+We need to keep the binwidth = 1. The unit of dep_delay is in minutes it would be better to keep the binwidth as 1 min.
+
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) + geom_histogram(binwidth = 1)
+```
+
+Lets try to visualize it in a better as we cannot see the extreme values properly. 
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) + geom_histogram(binwidth = 1) + ylim(c(0,50)) +xlim(c(-50,1500))
+```
+
+
+Lets calculate the mean value
+```{r}
+nycflights %>% summarise(mean_dd = mean(dep_delay))
+```
+
+The distribution looks skewed towards the right. We can calculate the median to understand where the 50% percentile lies. The mean will be greater than the median.
+
+```{r}
+nycflights %>% summarise(median_dd = median(dep_delay))
+```
+
+With some extreme values, the central tendency of the departure delay lies before 0 i.e earlier delay.
+
+What are boxplots? It is a visualization of a numerical variable to understand the interquartiles ranges and the median.
+
+```{r}
+ggplot(data = nycflights, aes(x = "", y = dep_delay)) + geom_boxplot()
+```
+
+Lets plot dep_delays boxplot?
+
+To understand the distribution of the departure delays accross months we will visualize side by side box plots. 
+
+****to compare categorical  and distribtuion numerical /continous
+try facet to compare histograms per month***
+
+```{r}
+ggplot(nycflights, aes(x = factor(month), y = dep_delay)) + geom_boxplot()
+```
+
+Lets summarize the mean of the departure delays grouped by month.
+
+```{r}
+nycflights %>% group_by(month) %>% summarise(mean_dd = mean(dep_delay)) %>% arrange(desc(mean_dd))
+```
+
+Lets summarize the median of the departure delays grouped by month.
+
+```{r}
+nycflights %>% group_by(month) %>% summarise(median_dd = median(dep_delay)) %>% arrange(desc(median_dd))
+```
+The month of the December has the highest median departure delay of 1 min. 
+
+We can use median to summarise the dep_delays as the distribution is skewed(positive). But the highest mean lies in the month of June/July that are part of the outliers. The median might not be significant if there are extreme values that show delays in flights with a longer value even though there count is less. 
+
+Lets create a new variable to add in our data frame to determine if the departed flight took off on-time or was delayed. We will suppose that a flight that is delayed for less than 5 min is considered to be on-time. We will categorize them as proportions.
+
+```{r}
+nycflights <- nycflights %>% mutate(dep_type = ifelse(dep_delay < 5, 'on-time', 'delay'))
+```
+
+Before we said that highest means of departure delays lies in the July/June, we can use the on time departure rate to evaluate the proportions of the dep_type with months.
+
+```{r}
+nycflights %>% group_by(month) %>% summarise(ot_dep_rate = sum(dep_type == 'on-time')/ n()) %>% arrange(desc(ot_dep_rate))
+```
+
+The on-time departure rate is highest in the month of September and lowest in December.
+
+Research Question 2:
+
+Lets calculate the on-time departure rate the flights grouped by origin that reperesents the three major airports in the New York City.
+
+```{r}
+nycflights %>% group_by(origin) %>% summarise(ot_dep_rate = sum(dep_type == 'on-time')/ n()) %>% arrange(desc(ot_dep_rate))
+```
+
+We can also visualize the distribution of the on-time departure rate accross the three airports using the segmented bar plot.
+
+```{r}
+ggplot(nycflights, aes(x = origin, fill = dep_type)) + geom_bar()
+```
+
+The plot shows LGA (LaGuardia Airport) with the highest on-time departure rate.
+
+Research Question 3:
+
+We will first see the distribution of the arrival delays.
+
+```{r}
+ggplot(data = nycflights, aes(x = arr_delay)) +geom_histogram(binwidth = 50)
+```
+
+The visualization shows that more than 50% of the population arrive earlier than scheduled. We can determine this by summarising the median of the arrival delay. We would prefer median to determine the central tendency as the distribution is positively skewed.
+
+Box plot
+```{r}
+ggplot(nycflights, aes(x = "", y = arr_delay)) + geom_boxplot()
+
+```
+
+
+```{r}
+nycflights %>% summarise(median_ad = median(arr_delay))
+```
+
+For comparison lets also calculate the mean
+
+```{r}
+nycflights %>% summarise(mean_ad = mean(arr_delay))
+```
+
+
+We will compare average speed with distance. We will create a new variable named average speed that will be used to compare the arrival delays.
+
+We will first create the variable that will be calcualted using the distance and air_time variables from the dataframe.
+
+```{r}
+nycflights <- nycflights %>% mutate(avg_speed = distance/air_time)
+```
+
+Lets visualize the relationship between the average speed and the distance.
+```{r}
+ggplot(data = nycflights, aes(x = distance , y = avg_speed)) + geom_point()
+```
+
+There is an overall expoenetial positive association between the avg_speed and distance variable. The more the distance the greater the average speed and the arrival time being earlier hence earlier delay than scheduled.
+
+Now we compare the speed with the arrival delay
+```{r}
+breaks <- c(0, 3, 6, 9, 12)
+bins_avg_speed <- cut(nycflights$avg_speed, breaks)
+ggplot(data = nycflights, aes(x = bins_avg_speed, y = arr_delay)) + geom_boxplot()
+```
+
+We can compare the distance with the arrival delay as well
+
+```{r}
+breaks <- c(0, 1000, 2000, 3000, 4000, 5000)
+bins_distance <- cut(nycflights$distance, breaks)
+ggplot(data = nycflights, aes(x = bins_distance, y = arr_delay)) + geom_boxplot()
+```
+
